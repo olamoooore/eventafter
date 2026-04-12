@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { ArrowRight, Star, Calendar, Users, MapPin } from 'lucide-react';
+import { ArrowRight, Star, Calendar, Users, MapPin, Quote } from 'lucide-react';
 
 export default function Home() {
   return (
@@ -23,7 +23,7 @@ export default function Home() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}
           >
-            <span className="text-gold text-sm uppercase tracking-[0.3em] mb-6 block">Welcome to Ever After Centre</span>
+            <span className="text-gold text-sm uppercase tracking-[0.3em] mb-6 block">Welcome to Ever After</span>
             <h1 className="text-5xl md:text-7xl lg:text-8xl font-serif text-bg-warm mb-6 leading-[1.1]">
               Where Every Celebration Becomes <span className="italic text-gold-light">Ever After</span>
             </h1>
@@ -62,7 +62,7 @@ export default function Home() {
               <span className="italic text-gold">A Lasting Memory</span>
             </h2>
             <p className="text-ink/70 leading-relaxed mb-8 text-lg font-light">
-              At Ever After Centre, we believe every event deserves a beautiful beginning and a lasting memory. Whether you are planning a dream wedding, a lively birthday celebration, or a corporate seminar, our venue provides the perfect setting tailored to your needs.
+              At Ever After, we believe every event deserves a beautiful beginning and a lasting memory. Whether you are planning a dream wedding, a lively birthday celebration, or a corporate seminar, our venue provides the perfect setting tailored to your needs.
             </p>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-10">
@@ -82,7 +82,7 @@ export default function Home() {
             </div>
             
             <p className="text-xl font-serif italic text-ink/80 border-l-2 border-gold pl-6 py-2">
-              Create moments that last forever at Ever After Centre.
+              Create moments that last forever at Ever After.
             </p>
           </div>
         </div>
@@ -138,6 +138,110 @@ export default function Home() {
               View All Services
             </Link>
           </div>
+        </div>
+      </section>
+
+      {/* Gallery / Moments Section */}
+      <section className="py-24 bg-bg-warm">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-6">
+            <div>
+              <span className="text-gold text-xs uppercase tracking-[0.2em] mb-4 block">Gallery</span>
+              <h2 className="text-4xl md:text-5xl font-serif">Moments Captured</h2>
+            </div>
+            <Link 
+              to="/about"
+              className="inline-block border-b border-ink pb-1 uppercase tracking-widest text-xs hover:text-gold hover:border-gold transition-colors"
+            >
+              Discover Our Story
+            </Link>
+          </div>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="aspect-[3/4] lg:translate-y-8 overflow-hidden">
+              <img src="https://images.unsplash.com/photo-1511285560929-80b456fea0bc?q=80&w=2069&auto=format&fit=crop" alt="Wedding table setup" className="w-full h-full object-cover hover:scale-105 transition-transform duration-700" referrerPolicy="no-referrer" />
+            </div>
+            <div className="aspect-[3/4] overflow-hidden">
+              <img src="https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?q=80&w=2069&auto=format&fit=crop" alt="Event details" className="w-full h-full object-cover hover:scale-105 transition-transform duration-700" referrerPolicy="no-referrer" />
+            </div>
+            <div className="aspect-[3/4] lg:translate-y-12 overflow-hidden">
+              <img src="https://images.unsplash.com/photo-1522413452208-99690151f234?q=80&w=2070&auto=format&fit=crop" alt="Corporate event" className="w-full h-full object-cover hover:scale-105 transition-transform duration-700" referrerPolicy="no-referrer" />
+            </div>
+            <div className="aspect-[3/4] lg:-translate-y-4 overflow-hidden">
+              <img src="https://images.unsplash.com/photo-1478146896981-b80fe463b330?q=80&w=2070&auto=format&fit=crop" alt="Party lights" className="w-full h-full object-cover hover:scale-105 transition-transform duration-700" referrerPolicy="no-referrer" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonials Section */}
+      <section className="py-24 bg-ink/5">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="text-center mb-16">
+            <span className="text-gold text-xs uppercase tracking-[0.2em] mb-4 block">Testimonials</span>
+            <h2 className="text-4xl md:text-5xl font-serif">Words from Our Clients</h2>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {[
+              {
+                name: "Sarah & John",
+                role: "Wedding Reception",
+                text: "Ever After made our dream wedding a reality. The venue was breathtaking, and the staff was incredibly attentive to every single detail. We couldn't have asked for a better experience."
+              },
+              {
+                name: "TechCorp Nigeria",
+                role: "Corporate Retreat",
+                text: "A highly professional environment. The flexible setup allowed us to transition seamlessly from our daytime seminar to the evening gala. Highly recommended for corporate events."
+              },
+              {
+                name: "Aisha Bello",
+                role: "50th Birthday Celebration",
+                text: "I couldn't have asked for a better place to celebrate my milestone. The ambiance is unmatched in Ikeja, and my guests are still talking about how beautiful the hall looked."
+              }
+            ].map((testimonial, idx) => (
+              <div key={idx} className="bg-bg-warm p-10 border border-ink/5 relative hover:shadow-md transition-shadow duration-300">
+                <Quote size={40} className="text-gold/20 absolute top-6 right-6" />
+                <div className="flex gap-1 text-gold mb-6">
+                  {[...Array(5)].map((_, i) => <Star key={i} size={14} fill="currentColor" />)}
+                </div>
+                <p className="text-ink/80 font-light leading-relaxed mb-8 italic">
+                  "{testimonial.text}"
+                </p>
+                <div>
+                  <h4 className="font-serif text-lg">{testimonial.name}</h4>
+                  <span className="text-xs uppercase tracking-widest text-ink/50">{testimonial.role}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Final CTA Section */}
+      <section className="py-32 bg-ink text-bg-warm relative overflow-hidden">
+        <div className="absolute inset-0 opacity-20">
+          <img 
+            src="https://images.unsplash.com/photo-1519167758481-83f550bb49b3?q=80&w=2098&auto=format&fit=crop" 
+            alt="Background" 
+            className="w-full h-full object-cover"
+            referrerPolicy="no-referrer"
+          />
+        </div>
+        <div className="relative z-10 max-w-4xl mx-auto px-6 text-center">
+          <h2 className="text-5xl md:text-7xl font-serif mb-8 leading-tight">
+            Ready to Plan Your <br/><span className="italic text-gold">Unforgettable Event?</span>
+          </h2>
+          <p className="text-bg-warm/70 text-lg font-light mb-10 max-w-2xl mx-auto">
+            Contact our dedicated team today to schedule a tour of the venue and discuss how we can bring your vision to life.
+          </p>
+          <Link 
+            to="/bookings"
+            className="inline-flex items-center gap-2 bg-gold text-ink px-10 py-5 uppercase tracking-widest text-sm hover:bg-bg-warm transition-colors duration-300"
+          >
+            Secure Your Date
+            <ArrowRight size={16} />
+          </Link>
         </div>
       </section>
     </div>
