@@ -18,10 +18,13 @@ export default function Bookings() {
   const [searchParams] = useSearchParams();
   const defaultEventType = searchParams.get('type') || '';
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submissionError, setSubmissionError] = useState<string | null>(null);
 
   const {
     register,
     handleSubmit,
+    reset,
     formState: { errors },
   } = useForm<BookingFormData>({
     defaultValues: {
@@ -29,11 +32,44 @@ export default function Bookings() {
     },
   });
 
-  const onSubmit = (data: BookingFormData) => {
-    console.log(data);
-    setTimeout(() => {
+  const onSubmit = async (data: BookingFormData) => {
+    setIsSubmitting(true);
+    setSubmissionError(null);
+
+    try {
+      const response = await fetch('/api/bookings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+
+      const payload = await response.json() as { message?: string };
+
+      if (!response.ok) {
+        throw new Error(payload.message || 'Unable to submit your booking request right now.');
+      }
+
       setIsSubmitted(true);
-    }, 1000);
+      reset({
+        fullName: '',
+        phone: '',
+        email: '',
+        eventType: defaultEventType,
+        eventDate: '',
+        guests: '',
+        details: '',
+      });
+    } catch (error) {
+      setSubmissionError(
+        error instanceof Error
+          ? error.message
+          : 'Unable to submit your booking request right now. Please call 0805 956 5056.',
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -134,6 +170,12 @@ export default function Bookings() {
                 </motion.div>
               ) : (
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+                  {submissionError && (
+                    <div className="rounded-[1.25rem] border border-red-200 bg-red-50 px-5 py-4 text-sm leading-relaxed text-red-700">
+                      {submissionError}
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div>
                       <label className="block text-xs uppercase tracking-widest mb-3 font-medium text-ink/80">Full Name *</label>
@@ -269,9 +311,10 @@ export default function Bookings() {
                   <div className="pt-4">
                     <button
                       type="submit"
+                      disabled={isSubmitting}
                       className="w-full rounded-full bg-sage text-bg-warm px-12 py-5 uppercase tracking-[0.24em] text-sm hover:bg-gold hover:text-ink transition-colors duration-300 flex justify-center items-center gap-3"
                     >
-                      Submit Request
+                      {isSubmitting ? 'Sending Request...' : 'Submit Request'}
                     </button>
                   </div>
                 </form>

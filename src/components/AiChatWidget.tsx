@@ -2,6 +2,12 @@ import { AnimatePresence, motion } from 'motion/react';
 import { LoaderCircle, MessageCircleMore, SendHorizontal, Trash2, X } from 'lucide-react';
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 
+type ChatLead = {
+  fullName: string;
+  email: string;
+  phone: string;
+};
+
 type ChatMessage = {
   id: string;
   role: 'assistant' | 'user';
@@ -16,6 +22,7 @@ type GroqMessage = {
 
 const groqApiKey = process.env.GROQ_API_KEY?.trim();
 const groqModel = 'llama-3.3-70b-versatile';
+const leadStorageKey = 'everafter-chat-lead';
 
 const systemInstruction = `You are the Ever After Centre AI concierge for the venue website.
 
@@ -54,12 +61,50 @@ function createWelcomeMessage(): ChatMessage {
   };
 }
 
+function getStoredLead(): ChatLead | null {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  const storedLead = window.sessionStorage.getItem(leadStorageKey);
+
+  if (!storedLead) {
+    return null;
+  }
+
+  try {
+    const parsedLead = JSON.parse(storedLead) as Partial<ChatLead>;
+
+    if (!parsedLead.fullName || !parsedLead.email || !parsedLead.phone) {
+      return null;
+    }
+
+    return {
+      fullName: parsedLead.fullName,
+      email: parsedLead.email,
+      phone: parsedLead.phone,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function hasUserConversation(messages: ChatMessage[]) {
+  return messages.some((message) => message.role === 'user' && message.content.trim());
+}
+
 export default function AiChatWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const [draft, setDraft] = useState('');
+  const [lead, setLead] = useState<ChatLead | null>(() => getStoredLead());
+  const [leadForm, setLeadForm] = useState<ChatLead>(() =>
+    getStoredLead() ?? { fullName: '', email: '', phone: '' },
+  );
+  const [leadError, setLeadError] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([createWelcomeMessage()]);
   const [isSending, setIsSending] = useState(false);
   const [errorText, setErrorText] = useState<string | null>(null);
+  const [isEndingChat, setIsEndingChat] = useState(false);
 
   const scrollerRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
@@ -69,8 +114,12 @@ export default function AiChatWidget() {
       return;
     }
 
+    if (!lead) {
+      return;
+    }
+
     inputRef.current?.focus();
-  }, [isOpen]);
+  }, [isOpen, lead]);
 
   useEffect(() => {
     const scroller = scrollerRef.current;
@@ -88,10 +137,83 @@ export default function AiChatWidget() {
     setDraft('');
   };
 
+  const submitLead = () => {
+    const nextLead = {
+      fullName: leadForm.fullName.trim(),
+      email: leadForm.email.trim(),
+      phone: leadForm.phone.trim(),
+    };
+
+    if (!nextLead.fullName || !nextLead.email || !nextLead.phone) {
+      setLeadError('Please enter your name, email, and phone number before starting the chat.');
+      return;
+    }
+
+    if (!/^\S+@\S+\.\S+$/.test(nextLead.email)) {
+      setLeadError('Please enter a valid email address.');
+      return;
+    }
+
+    setLead(nextLead);
+    setLeadForm(nextLead);
+    setLeadError(null);
+
+    if (typeof window !== 'undefined') {
+      window.sessionStorage.setItem(leadStorageKey, JSON.stringify(nextLead));
+    }
+  };
+
+  const sendTranscriptSilently = async (currentMessages: ChatMessage[]) => {
+    if (!lead || !hasUserConversation(currentMessages)) {
+      return;
+    }
+
+    setIsEndingChat(true);
+
+    try {
+      await fetch('/api/chat/transcript', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        keepalive: true,
+        body: JSON.stringify({
+          ...lead,
+          endedAt: new Date().toISOString(),
+          messages: currentMessages
+            .filter((message) => message.content.trim())
+            .map((message) => ({
+              role: message.role,
+              content: message.content,
+            })),
+        }),
+      });
+    } catch {
+      // Silent delivery is best-effort and should not block the UI.
+    } finally {
+      setIsEndingChat(false);
+    }
+  };
+
+  const endConversation = async () => {
+    const currentMessages = messages;
+
+    setIsOpen(false);
+    resetConversation();
+    await sendTranscriptSilently(currentMessages);
+  };
+
+  const clearConversation = async () => {
+    const currentMessages = messages;
+
+    resetConversation();
+    await sendTranscriptSilently(currentMessages);
+  };
+
   const sendMessage = async (rawMessage: string) => {
     const message = rawMessage.trim();
 
-    if (!message || isSending) {
+    if (!message || isSending || !lead) {
       return;
     }
 
@@ -226,7 +348,7 @@ export default function AiChatWidget() {
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={resetConversation}
+                    onClick={() => void clearConversation()}
                     className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-ink/10 bg-white/90 text-ink/70 transition-colors hover:border-gold hover:text-gold"
                     aria-label="Clear conversation"
                   >
@@ -234,7 +356,7 @@ export default function AiChatWidget() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setIsOpen(false)}
+                    onClick={() => void endConversation()}
                     className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-ink/10 bg-white/90 text-ink/70 transition-colors hover:border-gold hover:text-gold"
                     aria-label="Close AI chat"
                   >
@@ -246,34 +368,92 @@ export default function AiChatWidget() {
 
             <div ref={scrollerRef} className="relative flex-1 space-y-4 overflow-y-auto bg-[linear-gradient(180deg,rgba(255,255,255,0.72),rgba(246,244,237,0.62))] px-4 py-5 md:px-5">
               <div className="pointer-events-none absolute inset-x-0 top-0 h-20 bg-[radial-gradient(circle_at_top,rgba(229,177,100,0.09),transparent_60%)]" />
-              {messages.map((message) => (
-                <div
-                  key={message.id}
-                  className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                >
-                  <div
-                    className={`max-w-[85%] rounded-[1.5rem] px-4 py-3 text-sm leading-relaxed shadow-sm ${
-                      message.role === 'user'
-                        ? 'rounded-br-md bg-[linear-gradient(135deg,#243026_0%,#6a7557_100%)] text-bg-warm shadow-[0_14px_30px_rgba(36,48,38,0.16)]'
-                        : message.tone === 'error'
-                          ? 'rounded-bl-md border border-red-200 bg-red-50 text-red-800'
-                          : 'rounded-bl-md border border-gold/14 bg-[linear-gradient(180deg,rgba(246,244,237,1),rgba(255,255,255,0.95))] text-ink/80 shadow-[0_12px_28px_rgba(36,48,38,0.06)]'
-                    }`}
-                  >
-                    {message.content || (
-                      <span className="inline-flex items-center gap-2 text-ink/50">
-                        <LoaderCircle size={14} className="animate-spin" />
-                        Thinking...
-                      </span>
-                    )}
+              {!lead ? (
+                <div className="mx-auto max-w-sm rounded-[1.75rem] border border-gold/16 bg-white/90 p-6 shadow-[0_16px_32px_rgba(36,48,38,0.08)]">
+                  <p className="text-[11px] uppercase tracking-[0.24em] text-sage/80">Before we begin</p>
+                  <h3 className="mt-2 font-serif text-2xl text-ink">Share your details</h3>
+                  <p className="mt-3 text-sm leading-relaxed text-ink/65">
+                    Please provide your name, email, and phone number so our team can follow up properly after the chat.
+                  </p>
+
+                  <div className="mt-6 space-y-4">
+                    <input
+                      type="text"
+                      value={leadForm.fullName}
+                      onChange={(event) => setLeadForm((currentLead) => ({ ...currentLead, fullName: event.target.value }))}
+                      placeholder="Full name"
+                      className="w-full rounded-[1rem] border border-sage/12 bg-bg-warm/60 px-4 py-3 text-sm text-ink outline-none focus:border-gold"
+                    />
+                    <input
+                      type="email"
+                      value={leadForm.email}
+                      onChange={(event) => setLeadForm((currentLead) => ({ ...currentLead, email: event.target.value }))}
+                      placeholder="Email address"
+                      className="w-full rounded-[1rem] border border-sage/12 bg-bg-warm/60 px-4 py-3 text-sm text-ink outline-none focus:border-gold"
+                    />
+                    <input
+                      type="tel"
+                      value={leadForm.phone}
+                      onChange={(event) => setLeadForm((currentLead) => ({ ...currentLead, phone: event.target.value }))}
+                      placeholder="Phone number"
+                      className="w-full rounded-[1rem] border border-sage/12 bg-bg-warm/60 px-4 py-3 text-sm text-ink outline-none focus:border-gold"
+                    />
                   </div>
+
+                  {leadError && (
+                    <p className="mt-4 text-xs leading-relaxed text-red-700">{leadError}</p>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={submitLead}
+                    className="mt-6 inline-flex w-full items-center justify-center rounded-full bg-sage px-5 py-3 text-xs uppercase tracking-[0.24em] text-bg-warm transition-colors hover:bg-gold hover:text-ink"
+                  >
+                    Start Chat
+                  </button>
                 </div>
-              ))}
+              ) : (
+                messages.map((message) => (
+                  <div
+                    key={message.id}
+                    className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                  >
+                    <div
+                      className={`max-w-[85%] rounded-[1.5rem] px-4 py-3 text-sm leading-relaxed shadow-sm ${
+                        message.role === 'user'
+                          ? 'rounded-br-md bg-[linear-gradient(135deg,#243026_0%,#6a7557_100%)] text-bg-warm shadow-[0_14px_30px_rgba(36,48,38,0.16)]'
+                          : message.tone === 'error'
+                            ? 'rounded-bl-md border border-red-200 bg-red-50 text-red-800'
+                            : 'rounded-bl-md border border-gold/14 bg-[linear-gradient(180deg,rgba(246,244,237,1),rgba(255,255,255,0.95))] text-ink/80 shadow-[0_12px_28px_rgba(36,48,38,0.06)]'
+                      }`}
+                    >
+                      {message.content || (
+                        <span className="inline-flex items-center gap-2 text-ink/50">
+                          <LoaderCircle size={14} className="animate-spin" />
+                          Thinking...
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
 
             <div className="border-t border-gold/10 bg-[linear-gradient(180deg,rgba(246,244,237,0.92),rgba(255,255,255,0.96))] px-4 pb-4 pt-3 md:px-5 md:pb-5">
+              {lead && (
+                <p className="mb-3 text-[11px] uppercase tracking-[0.2em] text-sage/80">
+                  {lead.fullName} · {lead.email} · {lead.phone}
+                </p>
+              )}
+
               {errorText && (
                 <p className="mb-3 text-xs leading-relaxed text-red-700">{errorText}</p>
+              )}
+
+              {isEndingChat && (
+                <p className="mb-3 text-xs leading-relaxed text-ink/60">
+                  Saving chat transcript for follow-up.
+                </p>
               )}
 
               {!groqApiKey && (
@@ -290,12 +470,13 @@ export default function AiChatWidget() {
                   onKeyDown={handleKeyDown}
                   rows={1}
                   placeholder="Ask about the venue, hours, location, or booking"
+                  disabled={!lead}
                   className="max-h-32 min-h-12 flex-1 resize-none bg-transparent px-3 py-2 text-sm text-ink outline-none placeholder:text-ink/35"
                 />
                 <button
                   type="button"
                   onClick={() => void sendMessage(draft)}
-                  disabled={isSending || !draft.trim()}
+                  disabled={isSending || !draft.trim() || !lead}
                   className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-gold text-ink transition-all hover:scale-[1.03] hover:bg-gold-light disabled:cursor-not-allowed disabled:bg-ink/10 disabled:text-ink/30"
                   aria-label="Send message"
                 >
@@ -309,7 +490,14 @@ export default function AiChatWidget() {
 
       <motion.button
         type="button"
-        onClick={() => setIsOpen((currentValue) => !currentValue)}
+        onClick={() => {
+          if (isOpen) {
+            void endConversation();
+            return;
+          }
+
+          setIsOpen(true);
+        }}
         whileTap={{ scale: 0.96 }}
         className="fixed bottom-6 right-4 z-50 inline-flex h-14 w-14 items-center justify-center rounded-full border border-gold/30 bg-[linear-gradient(135deg,#243026_0%,#6a7557_100%)] text-bg-warm shadow-[0_18px_40px_rgba(36,48,38,0.25)] transition-colors hover:bg-gold hover:text-ink md:bottom-8 md:right-6"
         aria-label={isOpen ? 'Close AI chat' : 'Open AI chat'}
