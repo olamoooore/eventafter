@@ -4,7 +4,7 @@ import { motion } from 'motion/react';
 import { ArrowRight, Star, Calendar, Users, MapPin, Quote } from 'lucide-react';
 
 const heroSlides = [
-  "https://images.unsplash.com/photo-1519167758481-83f550bb49b3?q=80&w=2098&auto=format&fit=crop",
+  "/hero.jpg",
   "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?q=80&w=2069&auto=format&fit=crop",
   "https://images.unsplash.com/photo-1530103862676-de8892b12a15?q=80&w=2070&auto=format&fit=crop"
 ];
