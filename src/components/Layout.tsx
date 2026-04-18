@@ -52,7 +52,7 @@ export default function Layout() {
                 className={`object-contain transition-transform duration-500 group-hover:rotate-6 ${isTransparentDark ? 'h-14 w-14' : 'h-12 w-12'}`}
               />
               <div>
-                <h1 className="text-2xl md:text-3xl font-serif font-medium tracking-tight uppercase">Ever After</h1>
+                <span className="block text-2xl md:text-3xl font-serif font-medium tracking-tight uppercase">Ever After</span>
                 <p className={`hidden md:block text-[10px] uppercase tracking-[0.32em] ${isTransparentDark ? 'text-bg-warm/70' : 'text-sage/80'}`}>
                   Centre
                 </p>

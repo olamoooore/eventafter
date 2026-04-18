@@ -5,6 +5,7 @@
 
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Layout from './components/Layout';
+import Seo from './components/Seo';
 import Home from './pages/Home';
 import Services from './pages/Services';
 import About from './pages/About';
@@ -14,6 +15,7 @@ import Bookings from './pages/Bookings';
 export default function App() {
   return (
     <Router>
+      <Seo />
       <Routes>
         <Route path="/" element={<Layout />}>
           <Route index element={<Home />} />
