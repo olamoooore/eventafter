@@ -5,17 +5,22 @@
   --font-sans: "Montserrat", ui-sans-serif, system-ui, sans-serif;
   --font-serif: "Cormorant Garamond", ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
   
-  --color-bg-warm: #FAF9F6;
-  --color-ink: #1A1A1A;
-  --color-gold: #C5A059;
-  --color-gold-light: #E8D8B0;
+  --color-bg-warm: #f6f4ed;
+  --color-ink: #243026;
+  --color-sage: #6a7557;
+  --color-gold: #e5b164;
+  --color-gold-light: #f3d29a;
 }
 
 body {
   font-family: var(--font-sans);
-  background-color: var(--color-bg-warm);
+  background: linear-gradient(180deg, rgba(106, 117, 87, 0.05), rgba(246, 244, 237, 1) 18%), var(--color-bg-warm);
   color: var(--color-ink);
   -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  min-height: 100vh;
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -53,4 +58,44 @@ h1, h2, h3, h4, h5, h6 {
   transform: rotate(180deg);
   text-transform: uppercase;
   letter-spacing: 0.2em;
+}
+
+.page-shell {
+  position: relative;
+  isolation: isolate;
+}
+
+.page-shell::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 12% 10%, rgba(229, 177, 100, 0.18), transparent 22%),
+    radial-gradient(circle at 88% 18%, rgba(106, 117, 87, 0.14), transparent 24%),
+    linear-gradient(180deg, rgba(106, 117, 87, 0.06), transparent 24%);
+}
+
+.editorial-panel {
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(106, 117, 87, 0.12);
+  box-shadow: 0 24px 80px rgba(36, 48, 38, 0.08);
+  backdrop-filter: blur(16px);
+}
+
+.section-frame {
+  position: relative;
+  overflow: hidden;
+}
+
+.section-frame::after {
+  content: "";
+  position: absolute;
+  inset: auto -12% -40% auto;
+  width: 14rem;
+  height: 14rem;
+  border-radius: 9999px;
+  background: radial-gradient(circle, rgba(229, 177, 100, 0.22), transparent 68%);
+  pointer-events: none;
 }
