@@ -32,6 +32,15 @@ const pageSeo: Record<string, SeoEntry> = {
       'wedding reception venue Ikeja, seminar venue Lagos, corporate events Ikeja, birthday party venue Lagos, event services Ever After',
     type: 'website',
   },
+  '/gallery': {
+    title: 'Event Gallery | Ever After Centre Moments and Venue Highlights',
+    description:
+      'Browse the Ever After Centre gallery for weddings, celebrations, venue styling, and event highlights captured at our Ikeja, Lagos event space.',
+    path: '/gallery',
+    keywords:
+      'event gallery Ikeja, wedding venue photos Lagos, Ever After Centre gallery, event hall pictures Ikeja, venue styling gallery Lagos',
+    type: 'website',
+  },
   '/about': {
     title: 'About Ever After Centre | Trusted Event Venue in Ikeja',
     description:

@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form';
 import { useSearchParams } from 'react-router-dom';
 import { useState } from 'react';
 import { User, Phone, Mail, Calendar, Users, MessageSquare, Sparkles } from 'lucide-react';
+import { fetchApiJson } from '../lib/api';
 
 type BookingFormData = {
   fullName: string;
@@ -37,15 +38,13 @@ export default function Bookings() {
     setSubmissionError(null);
 
     try {
-      const response = await fetch('/api/bookings', {
+      const { response, data: payload } = await fetchApiJson<{ message?: string }>('/api/bookings', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(data),
       });
-
-      const payload = await response.json() as { message?: string };
 
       if (!response.ok) {
         throw new Error(payload.message || 'Unable to submit your booking request right now.');

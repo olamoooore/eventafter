@@ -20,9 +20,45 @@ const bookingRecipient = process.env.BOOKING_RECIPIENT || 'info@everaftercentre.
 const bookingFromName = process.env.BOOKING_FROM_NAME || 'Ever After Centre Website';
 const chatRecipient = process.env.CHAT_RECIPIENT || bookingRecipient;
 const chatFromName = process.env.CHAT_FROM_NAME || 'Ever After Centre Chat';
+const imagekitPrivateKey = process.env.IMAGEKIT_PRIVATE_KEY;
+const imagekitGalleryLimit = Math.min(Number(process.env.IMAGEKIT_GALLERY_LIMIT || 24), 60);
 const port = Number(process.env.PORT || (process.env.NODE_ENV === 'production' ? 3000 : 3001));
 
 app.use(express.json({ limit: '200kb' }));
+
+function isAllowedLocalOrigin(origin) {
+  if (!origin) {
+    return false;
+  }
+
+  try {
+    const parsedOrigin = new URL(origin);
+    const isLocalHost = parsedOrigin.hostname === 'localhost' || parsedOrigin.hostname === '127.0.0.1';
+    const isAllowedPort = parsedOrigin.port === '3000' || parsedOrigin.port === '4173';
+
+    return isLocalHost && isAllowedPort;
+  } catch {
+    return false;
+  }
+}
+
+app.use((request, response, next) => {
+  const origin = request.headers.origin;
+
+  if (isAllowedLocalOrigin(origin)) {
+    response.header('Access-Control-Allow-Origin', origin);
+    response.header('Vary', 'Origin');
+    response.header('Access-Control-Allow-Headers', 'Content-Type');
+    response.header('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+  }
+
+  if (request.method === 'OPTIONS') {
+    response.sendStatus(204);
+    return;
+  }
+
+  next();
+});
 
 function escapeHtml(value = '') {
   return value
@@ -56,6 +92,46 @@ function getTransporter() {
 async function sendMail(message) {
   const transporter = getTransporter();
   return transporter.sendMail(message);
+}
+
+async function fetchImageKitGallery() {
+  if (!imagekitPrivateKey) {
+    throw new Error('IMAGEKIT_PRIVATE_KEY is not configured on the server.');
+  }
+
+  const credentials = Buffer.from(`${imagekitPrivateKey}:`).toString('base64');
+  const response = await fetch(`https://api.imagekit.io/v1/files?limit=${imagekitGalleryLimit}`,
+    {
+      headers: {
+        Authorization: `Basic ${credentials}`,
+      },
+    },
+  );
+
+  if (!response.ok) {
+    const details = await response.text();
+    throw new Error(`ImageKit gallery request failed with ${response.status}: ${details}`);
+  }
+
+  const files = await response.json();
+
+  return Array.isArray(files)
+    ? files
+        .filter((file) => file?.fileType === 'image' && typeof file?.url === 'string')
+        .map((file) => ({
+          id: String(file.fileId || file.url),
+          name: String(file.name || 'Ever After event gallery image'),
+          alt: String(file.name || 'Ever After event gallery image')
+            .replace(/[-_]+/g, ' ')
+            .replace(/\.[a-z0-9]+$/i, ''),
+          url: file.url,
+          thumbnailUrl: typeof file.thumbnail === 'string' ? file.thumbnail : file.url,
+          width: Number(file.width || 0),
+          height: Number(file.height || 0),
+          tags: Array.isArray(file.tags) ? file.tags : [],
+          filePath: String(file.filePath || ''),
+        }))
+    : [];
 }
 
 function toBookingEmailHtml(booking) {
@@ -222,6 +298,34 @@ app.get('/api/health', (_request, response) => {
     ok: true,
     mailConfigured: Boolean(smtpPass),
   });
+});
+
+app.get('/api/gallery', async (_request, response) => {
+  try {
+    const images = await fetchImageKitGallery();
+    response.json({
+      configured: true,
+      images,
+    });
+  } catch (error) {
+    const isMissingConfig = error instanceof Error && error.message.includes('IMAGEKIT_PRIVATE_KEY');
+
+    if (isMissingConfig) {
+      response.status(503).json({
+        configured: false,
+        images: [],
+        message: 'ImageKit is not configured on the server yet.',
+      });
+      return;
+    }
+
+    console.error('ImageKit gallery fetch failed', error);
+    response.status(502).json({
+      configured: true,
+      images: [],
+      message: 'Unable to load gallery images right now.',
+    });
+  }
 });
 
 app.post('/api/bookings', async (request, response) => {

@@ -225,10 +225,10 @@ export default function Home() {
               <h2 className="text-4xl md:text-5xl font-serif">Moments Captured</h2>
             </div>
             <Link
-              to="/about"
+              to="/gallery"
               className="inline-block border-b border-sage pb-1 uppercase tracking-[0.24em] text-xs text-sage hover:text-gold hover:border-gold transition-colors"
             >
-              Discover Our Story
+              View Full Gallery
             </Link>
           </div>
 
