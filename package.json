@@ -5,9 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "concurrently -k \"npm:dev:web\" \"npm:dev:server\"",
-    "dev:web": "vite --port=3000 --host=0.0.0.0",
+    "dev:web": "node scripts/generate-gallery-manifest.mjs && vite --port=3000 --host=0.0.0.0",
     "dev:server": "node server.mjs",
-    "build": "vite build",
+    "build": "node scripts/generate-gallery-manifest.mjs && vite build",
     "start": "NODE_ENV=production node server.mjs",
     "preview": "vite preview",
     "clean": "rm -rf dist",

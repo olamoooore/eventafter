@@ -1,7 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, ChevronLeft, ChevronRight, Camera } from 'lucide-react';
-import { fetchApiJson } from '../lib/api';
 
 type GalleryItem = {
   id: string;
@@ -116,8 +115,9 @@ export default function Gallery() {
 
   useEffect(() => {
     let active = true;
-    fetchApiJson<{ images: GalleryItem[] }>('/api/gallery')
-      .then(({ data }) => {
+    fetch('/gallery-manifest.json')
+      .then((r) => r.json())
+      .then((data: { images: GalleryItem[] }) => {
         if (active) setImages(data.images || []);
       })
       .catch(() => {})
